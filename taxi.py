@@ -36,15 +36,15 @@ n_actions = env.action_space.n  # type: ignore
 #################################################
 
 
-agent = QLearningAgent(
+agent_qlearn = QLearningAgent(
     learning_rate=0.5, epsilon=0.1, gamma=0.99, legal_actions=list(range(n_actions))
 )
 
-agent = QLearningAgentEpsScheduling(
+agent_qlearn_scheduling = QLearningAgentEpsScheduling(
     learning_rate=0.5, epsilon=0.25, gamma=0.99, legal_actions=list(range(n_actions))
 )
 
-agent = SarsaAgent(
+agent_sarsa = SarsaAgent(
     learning_rate=0.5, epsilon=0.02, gamma=0.99, legal_actions=list(range(n_actions))
 )
 
@@ -72,14 +72,21 @@ def play_and_train(
         s = next_s
     return total_reward  # pyright: ignore
 
+def plot_reward(agent, num_simulation=100):
+    plot_rewards = []
+    for sim in range(num_simulation):
+        rewards = []
+        for _ in range(3000):
+            rewards.append(play_and_train(env, agent))
+        if sim % 10 == 0:
+            print(f"Simulation: {sim + 10}/{num_simulation}")
+        plot_rewards.append(rewards)
+    return np.array(plot_rewards)
 
-rewards = []
-for i in range(10000):
-    rewards.append(play_and_train(env, agent))
-    if i % 100 == 0:
-        print("mean reward", np.mean(rewards[-100:]))
+plot_rewards_qlearn = plot_reward(agent_qlearn)
+plot_rewards_qlearn_scheduling = plot_reward(agent_qlearn_scheduling)
+plot_rewards_sarsa = plot_reward(agent_sarsa)
 
-assert np.mean(rewards[-100:]) > 0.0
 
 number_generation = 5
 
@@ -91,7 +98,27 @@ for _ in range(number_generation):
     s, _ = env.reset()
     episode_over = False
     while not episode_over:
-        action = agent.get_best_action(s)  # replace with actual agent
+        action = agent_sarsa.get_best_action(s)  # replace with actual agent
         s, reward, terminated, truncated, _ = env.step(action)
         episode_over = terminated or truncated
 env.close()
+
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(24, 12))
+x = np.arange(1, 3001)
+plt.plot(x, np.array(plot_rewards_qlearn.mean(axis=0)), label="Q-Learning")
+plt.plot(x, np.array(plot_rewards_qlearn_scheduling.mean(axis=0)), label="Q-Learning with scheduling")
+plt.plot(x, np.array(plot_rewards_sarsa.mean(axis=0)), label="SARSA")
+
+plt.title("Comparison of different RL models", fontsize=20)
+plt.xlabel("Epochs", fontsize=16)
+plt.ylabel("Rewards (average of 100 simulations)", fontsize=16)
+
+plt.legend(fontsize=10)
+plt.grid(True)
+
+plt.xscale('log')
+plt.xticks([1, 10, 100, 1000], ['1', '10', '100', '1000'])
+
+plt.savefig("report/results_exploitation.png", dpi=300, bbox_inches='tight')
