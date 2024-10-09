@@ -2,7 +2,6 @@ from collections import defaultdict
 import random
 import typing as t
 import numpy as np
-import gymnasium as gym
 
 
 Action = int
@@ -15,6 +14,7 @@ class SarsaAgent:
     def __init__(
         self,
         learning_rate: float,
+        epsilon: float,
         gamma: float,
         legal_actions: t.List[Action],
     ):
@@ -24,6 +24,7 @@ class SarsaAgent:
         You shoud not use directly self._qvalues, but instead of its getter/setter.
         """
         self.legal_actions = legal_actions
+        self.epsilon = epsilon
         self._qvalues: QValues = defaultdict(lambda: defaultdict(int))
         self.learning_rate = learning_rate
         self.gamma = gamma
@@ -47,6 +48,7 @@ class SarsaAgent:
         """
         value = 0.0
         # BEGIN SOLUTION
+        #
         # END SOLUTION
         return value
 
@@ -59,11 +61,14 @@ class SarsaAgent:
            TD_error(s', a) = TD_target(s') - Q(s, a)
            Q_new(s, a) := Q(s, a) + alpha * TD_error(s', a)
         """
-        q_value = 0.0
         # BEGIN SOLUTION
+        td_target = reward + self.gamma * self.get_qvalue(
+            next_state, self.get_action(next_state)
+        )  # pyright: ignore
+        td_error = td_target - self.get_qvalue(state, action)
+        new_q_value = self.get_qvalue(state, action) + self.learning_rate * td_error
+        self.set_qvalue(state, action, new_q_value)
         # END SOLUTION
-
-        self.set_qvalue(state, action, q_value)
 
     def get_best_action(self, state: State) -> Action:
         """
@@ -80,9 +85,7 @@ class SarsaAgent:
         """
         Compute the action to take in the current state, including exploration.
         """
-        action = self.legal_actions[0]
-
-        # BEGIN SOLUTION
-        # END SOLUTION
-
-        return action
+        if random.uniform(0, 1) < self.epsilon:
+            return random.choice(self.legal_actions)
+        else:
+            return self.get_best_action(state)

@@ -35,8 +35,17 @@ n_actions = env.action_space.n  # type: ignore
 # 1. Play with QLearningAgent
 #################################################
 
+
 agent = QLearningAgent(
+    learning_rate=0.5, epsilon=0.1, gamma=0.99, legal_actions=list(range(n_actions))
+)
+
+agent = QLearningAgentEpsScheduling(
     learning_rate=0.5, epsilon=0.25, gamma=0.99, legal_actions=list(range(n_actions))
+)
+
+agent = SarsaAgent(
+    learning_rate=0.5, epsilon=0.02, gamma=0.99, legal_actions=list(range(n_actions))
 )
 
 
@@ -51,81 +60,38 @@ def play_and_train(
     """
     total_reward: t.SupportsFloat = 0.0
     s, _ = env.reset()
-
     for _ in range(t_max):
         # Get agent to pick action given state s
         a = agent.get_action(s)
-
         next_s, r, done, _, _ = env.step(a)
-        if r != -10:
-            total_reward += r  # pyright: ignore
+        total_reward += r  # pyright: ignore
         if done:
             break
-
         # Train agent for state s
         agent.update(s, a, r, next_s)
         s = next_s
-
     return total_reward  # pyright: ignore
 
 
 rewards = []
-for i in range(1000):
+for i in range(10000):
     rewards.append(play_and_train(env, agent))
     if i % 100 == 0:
         print("mean reward", np.mean(rewards[-100:]))
 
 assert np.mean(rewards[-100:]) > 0.0
 
-# TODO: créer des vidéos de l'agent en action
-num_eval_episodes = 4
+number_generation = 5
 
 env = RecordVideo(
     env, video_folder="video", name_prefix="eval", episode_trigger=lambda x: True
 )
-env = RecordEpisodeStatistics(env, buffer_length=num_eval_episodes)
-
-for episode_num in range(num_eval_episodes):
-    obs, info = env.reset()
-
+env = RecordEpisodeStatistics(env, deque_size=number_generation)
+for _ in range(number_generation):
+    s, _ = env.reset()
     episode_over = False
     while not episode_over:
-        action = agent.get_best_action(obs)  # replace with actual agent
-        obs, reward, terminated, truncated, info = env.step(action)
-
+        action = agent.get_best_action(s)  # replace with actual agent
+        s, reward, terminated, truncated, _ = env.step(action)
         episode_over = terminated or truncated
 env.close()
-
-#################################################
-# 2. Play with QLearningAgentEpsScheduling
-#################################################
-
-
-# agent = QLearningAgentEpsScheduling(
-#     learning_rate=0.5, epsilon=0.25, gamma=0.99, legal_actions=list(range(n_actions))
-# )
-#
-# rewards = []
-# for i in range(1000):
-#     rewards.append(play_and_train(env, agent))
-#     if i % 100 == 0:
-#         print("mean reward", np.mean(rewards[-100:]))
-#
-# assert np.mean(rewards[-100:]) > 0.0
-#
-# # TODO: créer des vidéos de l'agent en action
-#
-#
-# ####################
-# # 3. Play with SARSA
-# ####################
-#
-#
-# agent = SarsaAgent(learning_rate=0.5, gamma=0.99, legal_actions=list(range(n_actions)))
-#
-# rewards = []
-# for i in range(1000):
-#     rewards.append(play_and_train(env, agent))
-#     if i % 100 == 0:
-#         print("mean reward", np.mean(rewards[-100:]))
-#
