@@ -112,7 +112,7 @@ plt.plot(x, np.array(plot_rewards_qlearn_scheduling.mean(axis=0)), label="Q-Lear
 plt.plot(x, np.array(plot_rewards_sarsa.mean(axis=0)), label="SARSA")
 
 plt.title("Comparison of different RL models", fontsize=20)
-plt.xlabel("Epochs", fontsize=16)
+plt.xlabel("Iterations (log scale)", fontsize=16)
 plt.ylabel("Rewards (average of 100 simulations)", fontsize=16)
 
 plt.legend(fontsize=10)
